@@ -1,1 +1,203 @@
+1)
 
+
+mylist=[2,4,5,2,6,4,3,7,11,3]
+print(list(set(mylist)))
+
+
+
+
+2)
+
+
+"To find the best-selling items, understand sales patterns, measure discount effects, and evaluate brand performance from Flipkart Grocery transaction data, conducted an in-depth analysis using a combination of AWS Glue, AWS Crawler, AWS S3, AWS RDS,AWS Athena and Kafka. The data pipeline will be triggered using GitHub Actions, with Glue performing ETL operations and generating tables. AWS Athena will be utilized for querying the data, while GitHub Actions will automate the data pipeline process. Additionally, Kafka will serve as another data source, providing real-time streaming data. The insights gained from this comprehensive analysis will be visualized using Tableau, resulting in an interactive dashboard that allows users to explore the data and gain valuable insights."
+
+
+
+
+apne data ko hum custumize krke bhej re confluent k through
+ 
+""""""""""
+To find the best-selling items, understand sales patterns, measure discount effects, and evaluate brand performance from Flipkart Grocery transaction data. This analysis will be conducted using AWS Glue for ETL operations, AWS Crawler for generating the tables, AWS S3 and AWS RDS as two data source, Github Actions to trigger the Glue Jobs. AWS Athena for querying the data, and GitHub Actions for automating the data pipeline. The insights gained from this analysis will be visualized using Tableau, resulting in an interactive dashboard that allows users to explore the data in depth.   in this para add Kafka as a another data sourse and rest all the process is the same """""""""""""""""""""
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Globals:
+  Function:
+    MemorySize: 128
+    Timeout: 15
+Description: "Create AWS Resources"
+
+Resources:
+  GlueJobSalesData:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: Sales_Glue_Job
+      Description: Ingests data from s3 and after doing transformation it writes the data as a parquet file to the data warehouse
+      ExecutionClass: FLEX
+      GlueVersion: 4.0
+      MaxRetries: 0
+      NumberOfWorkers: 6
+      Role: arn:aws:iam::278557494232:role/LabRole
+      Timeout: 90
+      WorkerType: G.1X
+      Command:
+        Name: glueetl
+        ScriptLocation: s3://finalprojectinput/github/sales/Sales.py
+      DefaultArguments:
+        "--job-bookmark-option": "job-bookmark-enable"
+
+  GlueJobProductsData:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: Product_Glue_Job
+      Description: Ingests data from RDS and after doing transformation it writes the data as a parquet file to the data warehouse
+      ExecutionClass: FLEX
+      GlueVersion: 4.0
+      MaxRetries: 0
+      NumberOfWorkers: 6
+      Role: arn:aws:iam::278557494232:role/LabRole
+      Timeout: 90
+      WorkerType: G.1X
+      Command:
+        Name: glueetl
+        ScriptLocation: s3://finalprojectinput/github/products/Products_Glue_Job.py
+      DefaultArguments:
+        "--job-bookmark-option": "job-bookmark-enable"
+  
+  MyLambdaCFT:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: Sales-CFT-Trigger
+      CodeUri: s3://finalprojectinput/lambda_script_for_sales_cft/trigger.zip
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.8
+      Role: arn:aws:iam::278557494232:role/LabRole
+
+
+
+????????/////////////////////////////////////////////////////////////////////////////////////////
+
+AWS yml
+
+name: AWS Resource Creation 
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+jobs:
+  Deploy_CFT:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Upload Scripts to S3 Bucket
+        run: |
+          aws s3 cp Products_Glue_Job.py s3://gitprojectbigdata/github/product/
+          aws s3 cp Sales.py s3://gitprojectbigdata/github/sales/
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+
+      - name: Deploy CloudFormation stack
+        run: |
+          aws cloudformation deploy \
+            --stack-name AutomateStack \
+            --template-file .github/workflows/automate.yml \
+            --capabilities CAPABILITY_IAM
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+          
+
+
+#      - name: Run Glue Job for Sales
+#        run: |
+#          aws glue start-job-run --region us-east-1 --job-name Sales_Glue_Job
+#        env:
+#          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+#          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+#          AWS_DEFAULT_REGION: us-east-1
+#          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+#
+      - name: Run Glue Job for Products
+        run: |
+          aws glue start-job-run --region us-east-1 --job-name Product_Glue_Job
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+          AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+
+
+
+//////////////////////////////////////////////////////////////////////////////////////////
+automated.yml
+
+
+
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Globals:
+  Function:
+    MemorySize: 128
+    Timeout: 15
+Description: "Create AWS Resources"
+
+Resources:
+  GlueJobSalesData:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: Sales_Glue_Job
+      Description: Ingests data from s3 and after doing transformation it writes the data as a parquet file to the data warehouse
+      ExecutionClass: FLEX
+      GlueVersion: 4.0
+      MaxRetries: 0
+      NumberOfWorkers: 6
+      Role: arn:aws:iam::278557494232:role/LabRole
+      Timeout: 90
+      WorkerType: G.1X
+      Command:
+        Name: glueetl
+        ScriptLocation: s3://gitprojectbigdata/github/sales/Sales.py
+      DefaultArguments:
+        "--job-bookmark-option": "job-bookmark-enable"
+
+  GlueJobProductsData:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: Product_Glue_Job
+      Description: Ingests data from RDS and after doing transformation it writes the data as a parquet file to the data warehouse
+      ExecutionClass: FLEX
+      GlueVersion: 4.0
+      MaxRetries: 0
+      NumberOfWorkers: 6
+      Role: arn:aws:iam::278557494232:role/LabRole
+      Timeout: 90
+      WorkerType: G.1X
+      Command:
+        Name: glueetl
+        ScriptLocation: s3://gitprojectbigdata/github/product/Products_Glue_Job.py
+      DefaultArguments:
+        "--job-bookmark-option": "job-bookmark-enable"
+  
+  MyLambdaCFT:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: Sales-CFT-Trigger
+      CodeUri: s3://finalprojectinput/lambda_script_for_sales_cft/trigger.zip
+      Handler: lambda_function.lambda_handler
+      Runtime: python3.8
+      Role: arn:aws:iam::278557494232:role/LabRole
