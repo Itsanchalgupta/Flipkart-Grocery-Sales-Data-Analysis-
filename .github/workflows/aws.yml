@@ -25,7 +25,7 @@ jobs:
         run: |
           aws cloudformation deploy \
             --stack-name AutomateStack \
-            --template-file .github/workflows/automate.yml \
+            --template-file .github/workflows/Automate.yml \
             --capabilities CAPABILITY_IAM
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
