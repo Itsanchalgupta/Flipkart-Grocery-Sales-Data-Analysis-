@@ -60,7 +60,7 @@ ChangeSchema_node1707477382758 = ApplyMapping.apply(
 
 # Script generated for node Amazon S3
 AmazonS3_node1708110424343 = glueContext.getSink(
-    path="s3://finalprojectinput/product output/",
+    path="s3://finalbigdataproject1/product_output/",
     connection_type="s3",
     updateBehavior="LOG",
     partitionKeys=[],
@@ -68,7 +68,7 @@ AmazonS3_node1708110424343 = glueContext.getSink(
     transformation_ctx="AmazonS3_node1708110424343",
 )
 AmazonS3_node1708110424343.setCatalogInfo(
-    catalogDatabase="flipkart_testing", catalogTableName="Product_via_CFT"
+    catalogDatabase="default", catalogTableName="Product_via_CFT"
 )
 AmazonS3_node1708110424343.setFormat("glueparquet", compression="uncompressed")
 AmazonS3_node1708110424343.writeFrame(ChangeSchema_node1707477382758)
